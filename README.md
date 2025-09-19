@@ -1,7 +1,7 @@
 # Equality Imperative: Gender Inequality, HDI, and Maternal Mortality  
 *AOL – Data Mining and Visualization Project (Semester 2, 2024)*  
 
-![Infographic Preview](./Infographic_AOL.png)
+![Infographic Preview](./outputs/Infographic_AOL.png)
 
 ---
 
