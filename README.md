@@ -60,8 +60,3 @@ The work combines data mining in R, statistical analysis, and visualization into
 - R (≥ 4.0)  
 - R packages: `tidyverse`, `plotly`, `dplyr`, `readr`  
 
-### Steps  
-1. Clone this repository:  
-   ```bash
-   git clone https://github.com/arieltarliman/Data-Mining-and-Visualization-about-Equality-Imperative.git
-   cd Data-Mining-and-Visualization-about-Equality-Imperative
