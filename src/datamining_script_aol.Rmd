@@ -1,0 +1,547 @@
+---
+title: "AOL DATA MINING SCRIPT"
+author: "Arieldhipta Tarliman"
+date: "2024-06-16"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Library
+
+```{r}
+library(tidyverse)
+library(leaflet)
+library(plotly)
+```
+
+# Import Dataset
+
+```{r}
+df_country= read.csv(file.choose(), header = T, sep =",")
+```
+
+```{r}
+df_index_2021 = read.csv(file.choose(), header = T, sep =",")
+```
+
+# Dataset Review
+
+```{r}
+head(df_country)
+```
+
+```{r}
+head(df_index_2021)
+```
+
+# Data Preparation & Cleaning
+
+## Dataframe Preparation
+
+```{r}
+names(df_country) <- c("ISO3","Country","Continent","Hemisphere","HDG", "UNDP_Developing_Regions","HDI_Rank_2021","GII_Rank_2021", "GII_1990","GII_1991","GII_1992","GII_1993","GII_1994","GII_1995","GII_1996","GII_1997","GII_1998","GII_1999","GII_2000","GII_2001","GII_2002","GII_2003","GII_2004","GII_2005","GII_2006","GII_2007","GII_2008","GII_2009","GII_2010","GII_2011","GII_2012","GII_2013","GII_2014","GII_2015","GII_2016","GII_2017","GII_2018","GII_2019","GII_2020","GII_2021")
+```
+
+## Removing Missing Value
+
+```{r}
+# create a functiion to count the missing value
+nasum <- function(col){
+  sum(is.na(col))
+}
+```
+
+### df_country
+
+```{r echo=FALSE}
+# count missing value each column in dataframe
+df_country %>% apply(MARGIN = 2, FUN = nasum)
+```
+
+```{r}
+# drop all rows contain missing value
+df_country <- df_country %>% filter(complete.cases(df_country))
+```
+
+```{r}
+# confirmation checking
+df_country %>% apply(MARGIN = 2, FUN = nasum)
+```
+
+### df_index_2021
+
+```{r}
+# count missing value each column in dataframe
+df_index_2021 %>%  apply(MARGIN =2, FUN = nasum)
+```
+
+```{r}
+# drop all rows contain missing value
+df_index_2021 <- df_index_2021 %>%filter(complete.cases(df_index_2021))
+```
+
+```{r}
+# confirmation checking
+df_index_2021 %>%  apply(MARGIN =2, FUN = nasum)
+```
+
+## Remove Duplicate
+
+### df_country
+
+```{r}
+#tidak ada duplicated value pada df_country
+df_country %>% filter(duplicated(df_country))
+```
+
+### df_index_2021
+
+```{r}
+#terdapat duplicated value pada df_index_2021
+df_index_2021 %>% filter(duplicated(df_index_2021$Country))
+```
+
+```{r}
+#delete duplicated row
+df_index_2021 <- df_index_2021 %>% filter(!duplicated(df_index_2021$Country))
+```
+
+```{r}
+# confirmation
+df_index_2021 %>% filter(duplicated(df_index_2021$Country))
+```
+
+## Factoring Column
+
+```{r}
+df_country$Continent <- as.factor(df_country$Continent)
+df_index_2021$Human_development = as.factor(df_index_2021$Human_development)
+```
+
+# Plotting
+
+## Plot Top 5 & Indonesia GII Ranking
+
+```{r}
+#create a subset data
+df_sorted_country <- df_country %>% arrange(df_country$GII_2021)
+df_sorted_country <- df_sorted_country %>%  filter(df_sorted_country$Country =="Indonesia" | row_number()<= 5)
+df_sorted_country <- df_sorted_country %>% arrange(df_sorted_country$GII_2021)
+df_sorted_country <- mutate(df_sorted_country,color = ifelse(df_sorted_country$Country =="Indonesia", "pink", "steelblue"))
+```
+
+```{r}
+plot_ly(df_sorted_country, 
+        x = ~GII_2021, 
+        y = ~reorder(Country, GII_2021, decreasing = TRUE), 
+        type = 'bar',
+        text = ~GII_Rank_2021,
+        textposition = "auto",
+         marker = list(color = ~color)) %>%
+  layout(
+    title = '',
+    xaxis = list(
+      title = '',
+      type = 'log',
+      showticklabels = FALSE,
+      showgrid = FALSE
+    ),
+    yaxis = list(
+      title = "",
+      categoryorder = "total descending"
+    )
+  )
+```
+
+## Scatter plot for Impact of Maternal Mortality to define GII Rank
+
+```{r}
+#subset data
+df_rank_mortality <- df_index_2021[, c("Maternal_mortality", "Rank")]
+```
+
+```{r}
+plot_ly(df_rank_mortality,
+        y = ~ Maternal_mortality,
+        x = ~ Rank,
+        type = "scatter"
+) %>% 
+  add_trace(
+    type = "scatter",
+    mode = "lines",
+    x = ~c(min(Rank), max(Rank)),
+    y = ~c(min(Maternal_mortality), max(Maternal_mortality)),
+    line = list(color = "pink")
+  )%>% layout(
+    showlegend = FALSE,
+    xaxis = list(
+      title = "Gii Rank",
+      showline = TRUE,
+      showgrid = FALSE
+    ),
+    yaxis = list(
+      title = "",
+      type = "log",
+      showgrid = FALSE
+    )
+  )
+```
+
+## Bar Plot for Average Mortality based on Human Development Category
+
+```{r}
+#subset data
+table_HD_Mortality <- df_index_2021 %>% 
+  group_by(Human_development) %>%
+  summarise(average = mean(Maternal_mortality)) %>%
+  arrange(desc(average))  # Arrange in descending order by average
+
+#color scheme for plotting
+color_hd_mortality <- c("#E88DBC", "#EB70AF", "pink", "#BDE0FE")
+color_hd_mortality_1 <- c("#E88DBC", "#BDE0FE","#EB70AF", "pink" )
+```
+
+```{r}
+# Create Plotly bar plot
+plot_ly(table_HD_Mortality,
+        x = ~reorder(Human_development, -average),
+        y = ~average,
+        color = ~Human_development,
+        colors = color_hd_mortality_1,
+        type = "bar") %>%
+  layout(
+    title = "",
+    xaxis = list(title = ""),
+    yaxis = list(title = ""),
+    showlegend = FALSE
+  )
+```
+
+## Pie chart for HDI Index Group for All Country
+
+```{r}
+table_HDI_Country <- df_index_2021 %>%
+  group_by(Human_development) %>%
+  summarise(Total = n())%>%
+  arrange(desc(Total))
+table_HDI_Country
+```
+
+```{r}
+plot_ly(
+  table_HDI_Country,
+  labels = ~Human_development,
+  values = ~Total,
+  type = "pie",
+  marker = list(colors = ~color_hd_mortality),
+  textinfo = "label+percent",
+  insidetextfont = list(
+    color = "white",
+    weight= "bold",
+    size = 25,
+    family = "Helvetica"
+  ),
+  showlegend = FALSE
+)
+```
+
+# Descriptive Analysis
+
+```{r}
+#subset data by Indonesia
+Indonesia_status <- df_index_2021 %>% filter(Country =="Indonesia")
+
+table_education_world <- data.frame(
+  Gender = c("Male", "Female"),
+  Average_Education = colSums(df_index_2021[, 8:9])/169
+)
+
+table_education_world
+```
+
+```{r}
+#jumlah penduduk perempuan indonesia yang berusia remaja 15- 19 menurut BPS Indonesia
+jumlah_F_R_I <- 10755
+
+# jumlah perempuan remaja usian 15-19 tahun yang melahirkan 
+jumlah_F_R_M_I <- Indonesia_status$Adolescent_birth_rate
+
+#menghitung 
+jumlah_F_M_I <- (jumlah_F_R_M_I/ 1000) *jumlah_F_R_I
+
+presentase_remaja_premenpuan_melahirkan <- (jumlah_F_M_I/jumlah_F_R_I) *100
+presentase_remaja_premenpuan_melahirkan
+
+#Maka presentase remaja perempuan yang melahirkan adalah 3.39% yaitu 1 dari 30 perempuan
+```
+
+```{r}
+#create new subset
+df_subset_gii <- df_country[,c("Country","GII_1990","GII_2021")]
+
+#Perkembangan  GII Indonesia dari tahun 1990 - 2021
+df_subset_gii_Indo = df_subset_gii %>% filter(Country == "Indonesia")
+df_subset_gii_Indo$percentage_change
+
+#Indonesia telah mengalami penurunan Index GII sebesar 35% dari tahum 1990
+```
+
+```{r}
+#jumlah persentase perempuan pada kedudukan parlemen indonesia
+Indonesia_status$Seats_parliament
+```
+
+# Additional Plot (not used in Infographic)
+
+## Line Chart for The Average GII Index throughout The Year
+
+```{r}
+#Cari total country dalam dataset
+total_row <-nrow(df_country)
+
+#rename column
+tablesum <- c("1990","1991","1992","1993","1994","1995","1996","1997","1998","1999","2000","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020","2021")
+
+#subset data kolom tahun pada df_country
+column_sums <- colSums(df_country[, 9:40])
+column_sums
+
+#ubah nama kolom
+names(column_sums) <- c(tablesum)
+
+#mencari rata-rata GII Index dunia pada tahun tersebut
+mean_per_cols <- column_sums /total_row
+mean_per_cols
+
+#gabungkan subset data yang dibuat
+table_GII_year <- data.frame(
+  Mean = mean_per_cols,
+  Year = tablesum
+)
+table_GII_year
+```
+
+```{r}
+# layout modelling
+xaxis_1 <- list(
+    title = "",
+    tickvals = table_GII_year$Year[seq(1, length(table_GII_year$Year), by = 5)],
+    ticktext = table_GII_year$Year[seq(1, length(table_GII_year$Year), by = 5)],
+    showline = TRUE,
+    showgrid = FALSE,
+    tickfont = list(family = 'Arial',
+                             size = 12,
+                             color = 'rgb(82, 82, 82)')
+    )
+yaxis_1 <- list(title = "",
+             showgrid = FALSE,
+             zeroline = FALSE,
+             showline = FALSE,
+             showticklabels = FALSE)
+
+margin_1<- list(autoexpand = FALSE,
+              l = 100,
+              r = 100,
+              t = 110)
+```
+
+```{r}
+#plotting
+fig <-plot_ly(table_GII_year,
+  x = ~ Year,
+  y = ~ Mean,
+  type = "scatter",
+  mode = "lines")
+
+fig <- fig %>%
+  add_trace(
+  x = ~c(min(table_GII_year$Year), max(table_GII_year$Year)),
+  y = ~c(max(table_GII_year$Mean), min(table_GII_year$Mean)),
+  type = 'scatter', 
+  mode = 'markers', 
+  marker = list(color = 'pink', size = 8),
+  showlegend = FALSE
+) 
+
+fig <- fig %>%
+  layout(
+  title = "",
+  autosize = FALSE,
+  xaxis = xaxis_1,
+  yaxis = yaxis_1
+)
+
+fig <- fig %>%
+  layout(
+    margin = margin_1
+  )
+fig <- fig %>%
+  layout(
+    annotations = list(
+    list(
+      x = 0.05,
+      y = max(table_GII_year$Mean),
+      xref = "paper",
+      yref = "y",
+      xanchor ="right",
+      text = paste(" 0.49"),
+      showarrow = FALSE,
+      font = list(
+        family = "Arial",
+        size = 16,
+        color = "rgba(67,67,67,1)"
+      )
+    ) 
+  )
+  )
+fig <- fig%>%
+layout(
+  annotations = 
+    list(
+      x = 0.95,
+      y = min(table_GII_year$Mean),
+      xref = "paper",
+      yref = "y",
+      xanchor ="left",
+      text = paste("0.32"),
+      showarrow = FALSE,
+      font = list(
+        family = "Arial",
+        size = 16,
+        color = "rgba(67,67,67,1)"
+      )
+    )
+  )
+fig
+```
+
+```{r}
+#Indonesia_GII_Yearly <- df_country %>%
+#  filter(Country %in% c("Indonesia", "Papua New Guinea", "Denmark"))
+```
+
+```{r}
+#create new subset
+df_subset_gii <- df_country[,c("Country","GII_1990","GII_2021")]
+
+# Bikin kolom baru buat selisih jarak antar GII rank pada tahun 1990 &2021
+df_subset_gii$space <- df_subset_gii$GII_1990 - df_subset_gii$GII_2021
+df_subset_gii$total <- df_subset_gii$GII_1990 + df_subset_gii$GII_2021
+df_subset_gii$percentage_change <- ((df_subset_gii$GII_1990 - df_subset_gii$GII_2021) / df_subset_gii$GII_2021) * 100
+```
+
+```{r}
+
+#sort & filter top 5 best progress
+df_subset_gii <- df_subset_gii %>% arrange(df_subset_gii$percentage_change)
+df_subset_gii_top_5 <- df_subset_gii %>% filter(row_number() <=5)
+df_subset_gii_top_5
+```
+
+```{r}
+#sort & filter top 5 worst progress
+df_subset_gii_worst_5 <- df_subset_gii %>% arrange(desc( df_subset_gii$percentage_change))
+df_subset_gii_worst_5 <-df_subset_gii_worst_5 %>% filter(row_number() <= 5)
+df_subset_gii_worst_5
+```
+
+## Top 5 Country that Progress Insignificantly from 1990 - 2021
+
+```{r}
+plot_ly(df_subset_gii_top_5,
+        x = ~reorder(Country, -GII_2021),
+        y = ~GII_1990,
+        name = "1990",
+        type = "bar") %>%
+  add_trace(
+    y = ~GII_2021,
+    name = "2021",
+    type = "bar",
+    marker = list(color ="pink")
+  ) %>%
+  layout(
+    xaxis = list(title = ""),
+    yaxis = list(title = "",
+                 showgrid = TRUE),
+    barmode = "group",  # Display bars grouped
+    legend = list(
+      title = list(text = ""),
+      orientation = "h",  # Horizontal legend
+      xanchor = "center", yanchor = "top",
+      x = 0.5, y = -0.15
+    )
+  )
+```
+
+## Top 5 Country that Progress Significantly from 1990 - 2021
+
+```{r}
+plot_ly(df_subset_gii_worst_5,
+        x = ~reorder(Country, -GII_2021),
+        y = ~GII_1990,
+        name = "1990",
+        type = "bar") %>%
+  add_trace(
+    y = ~GII_2021,
+    name = "2021",
+    type = "bar",
+    marker = list(color ="pink")
+  ) %>%
+  layout(
+    xaxis = list(title = ""),
+    yaxis = list(title = "",
+                 showgrid = TRUE),
+    barmode = "group",  # Display bars grouped
+    legend = list(
+      title = list(text = ""),
+      orientation = "h",  # Horizontal legend
+      xanchor = "center", yanchor = "top",
+      x = 0.5, y = -0.15
+    )
+  )
+```
+
+## Pie char for Secondary Education Based on Gender
+
+```{r}
+#subset data by Indonesia
+Indonesia_status <- df_index_2021 %>% filter(Country =="Indonesia")
+Indonesia_status
+
+#subset data
+total_education_index_Indo <- sum(Indonesia_status$F_secondary_educ, Indonesia_status$M_secondary_educ)
+
+table_education_indonesia <-data.frame(
+  Gender = c("Female", "Male"),
+  Education_Index = c(Indonesia_status$F_secondary_educ, Indonesia_status$M_secondary_educ)
+)
+
+table_education_indonesia$Percentage = (table_education_indonesia$Education_Index /total_education_index_Indo) *100
+table_education_indonesia
+```
+
+```{r}
+#color for plotting
+color_pie = c("pink", "steelblue")
+
+plot_ly(
+  table_education_indonesia,
+  labels = ~Gender,
+  values = ~Percentage,
+  type = "pie",
+  marker = list(colors = color_pie),
+  textinfo = "label+percent",
+  insidetextfont = list(
+    size = 40,
+    weight= "bold",
+    family = "Helvetica"
+  )
+) %>%
+  layout(
+    title = "",
+    showlegend = FALSE
+  )
+```
