@@ -13,11 +13,11 @@ The work combines data mining in R, statistical analysis, and visualization into
 ---
 
 ## Key Insights  
-- Indonesia’s Gender Inequality Index (GII) declined by **35% between 1990 and 2021**:contentReference[oaicite:0]{index=0}.  
-- **1 in 30 teenage girls** in Indonesia experience pregnancy, highlighting challenges in reproductive health:contentReference[oaicite:1]{index=1}.  
-- Only **21% of seats in parliament** are held by women:contentReference[oaicite:2]{index=2}.  
+- Indonesia’s Gender Inequality Index (GII) declined by **35% between 1990 and 2021**
+- **1 in 30 teenage girls** in Indonesia experience pregnancy, highlighting challenges in reproductive health
+- Only **21% of seats in parliament** are held by women
 - Countries with **low and medium HDI** levels show significantly higher maternal mortality rates.  
-- In 2021, Indonesia ranked **110th out of 190 countries** in the Gender Inequality Index:contentReference[oaicite:3]{index=3}.  
+- In 2021, Indonesia ranked **110th out of 190 countries** in the Gender Inequality Index
 
 ---
 
